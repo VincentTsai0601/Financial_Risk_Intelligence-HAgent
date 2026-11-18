@@ -1,0 +1,44 @@
+services:
+  app:
+    build: .
+    ports:
+      - "127.0.0.1:${APP_PORT:-8501}:8501"
+    environment:
+      GEMINI_API_KEY: "${GEMINI_API_KEY:-}"
+      GEMINI_MODEL: "${GEMINI_MODEL:-gemini-3.5-flash-lite}"
+
+  judge:
+    profiles: [judge]
+    image: "${VLLM_IMAGE:-vllm/vllm-openai:v0.14.0}"
+    command:
+      - --model
+      - Qwen/Qwen3-4B
+      - --served-model-name
+      - qwen3-4b
+      - --host
+      - 0.0.0.0
+      - --port
+      - "8000"
+      - --dtype
+      - half
+      - --max-model-len
+      - "8192"
+      - --max-num-seqs
+      - "1"
+      - --gpu-memory-utilization
+      - "0.90"
+    ports:
+      - "127.0.0.1:8001:8000"
+    shm_size: 1gb
+    volumes:
+      - judge-model-cache:/root/.cache/huggingface
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+
+volumes:
+  judge-model-cache:

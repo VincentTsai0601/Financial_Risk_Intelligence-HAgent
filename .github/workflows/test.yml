@@ -1,0 +1,31 @@
+name: Test
+on: [push, pull_request]
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: python -m unittest discover -s tests -v
+      - name: Build and start the app container
+        run: docker compose up --build --wait --wait-timeout 90 app
+      - name: Smoke-test the running container
+        run: |
+          curl --fail --silent --show-error http://127.0.0.1:8501/_stcore/health
+          docker compose exec -T app python - <<'PY'
+          from streamlit.testing.v1 import AppTest
+
+          app = AppTest.from_file("app.py").run()
+          assert not app.exception, app.exception
+          assert app.metric[0].value == "165% of NAV"
+          assert app.metric[2].value == "Limit breached"
+          assert app.radio[0].options == ["Fixed evidence", "ReAct tool calling"]
+          PY
+      - name: Show container logs
+        if: failure()
+        run: docker compose logs app
+      - name: Stop test containers
+        if: always()
+        run: docker compose down

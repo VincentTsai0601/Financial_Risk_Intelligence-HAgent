@@ -1,0 +1,11 @@
+**
+!Dockerfile
+!requirements.txt
+!app.py
+!agent.py
+!gemini.py
+!risk.py
+!data/
+!data/portfolio.csv
+!data/positions.csv
+!data/policy.json
